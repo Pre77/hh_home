@@ -86,11 +86,15 @@
             let hs = window.localStorage.getItem('history') || '[]';
 
             hs = JSON.parse(hs).slice(-3);
-            
-            for (let value in hs) {
-                let li = document.createElement('li');
-                li.appendChild(document.createTextNode(hs[2-value]));
-                historySearch.appendChild(li); 
+            if (hs) {
+                if (hs.length > 0) {
+                    let len = hs.length - 1;
+                    for (let value in hs) {
+                        let li = document.createElement('li');
+                        li.appendChild(document.createTextNode(hs[len-value]));
+                        historySearch.appendChild(li); 
+                    }
+                }
             }
         }
         function getRequest() {
@@ -98,7 +102,11 @@
             hs = JSON.parse(hs);
             hs.push(inputValue.value);
             hs = hs.filter((item, idx) => {return hs.indexOf(item) == idx; });
-            window.localStorage.setItem('history', JSON.stringify(hs)); 
+            try {
+                window.localStorage.setItem('history', JSON.stringify(hs)); 
+            } catch (e) {
+                console.log(e);
+            }
             searchResults.innerHTML = '';
             fetch('https://api.themoviedb.org/3/search/movie?api_key=f680a867566257f0ead418be1d746aca&query=' + inputValue.value, ).then(response => response.json())
             .then(result => {
@@ -135,8 +143,9 @@
                 hs = JSON.parse(hs);
 
                 dataList.innerHTML = '';
+                const regex = new RegExp(inputValue.value, "i"); 
                 let filter = hs.filter((item) => {
-                    return item.includes(inputValue.value);
+                    return regex.test(item);
                 });
                 let prev = filter.slice(-5);
                 
