@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mocha Tests</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css" />
+    <style>
+        body {
+            width: 100%;
+            height: 100%;
+        }
+        #search {
+            margin: auto;
+            width: 1000px;
+            padding-top: 10%;
+            display: flex;
+        }
+        .col {
+            width: 400px;
+        }
+        .flex {
+            display: flex;
+            height: 25px;
+        }
+        #results {
+            width: 500px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .flex-col {
+            margin: 0 5px;
+            display: flex;
+            width: 230px;
+            flex-direction: column;
+            align-items: center;
+        }
+        #sValue {
+            width: 100%;
+            font-size: 16px;
+        }
+        #listSearch {
+           list-style-type: none;
+        }
+    </style>
+  </head>
+  <body>
+    <div id="search">
+        <div class="col">
+            <div class="flex">
+                <input id="sValue" type="text" list="input" value="">
+                <datalist id="input">
+
+                </datalist>
+                <button id="searchButton">Искать</button> 
+            </div>
+            <div id="suggest">
+                <h3>Вы искали ранее:</h3>
+                <ul id="listSearch">
+        
+                </ul>
+            </div>
+        </div>
+        <div id='results'>
+
+        </div>
+    </div>
+
+    </body>
+    <script>
+        const consoleStyles = {lead: ['font-family: Roboto, Avant Garde,Avantgarde,Century Gothic,CenturyGothic,AppleGothic,sans-serif', 'font-size: 24px'].join(';'), 
+                                p: ['font-family: Roboto, Avant Garde,Avantgarde,Century Gothic,CenturyGothic,AppleGothic,sans-serif', 'font-size: 12x',].join(';')};
+        console.log('%c%s', consoleStyles.lead, 'Домашнее задание');
+        console.log('%c%s', consoleStyles.p, 'Взять любое свободное API с функцией поиска, например themoviedb.org');
+        console.log('%c%s', consoleStyles.p, 'Реализовать на странице поле ввода поискового запроса с функцией саджеста');
+        console.log('%c%s', consoleStyles.p, 'Саджест подсказывает 10 вариантов, максимум 5 из которых — предыдущие поиски пользователя');
+        console.log('%c%s', consoleStyles.p, 'На странице вывести 3 последних поиска, причем они должны обновляться даже если я ищу в соседней вкладке');
+        const dataList = document.getElementById('input');
+        const inputValue = document.getElementById('sValue');
+        const historySearch = document.getElementById('listSearch');
+        const searchButton = document.getElementById('searchButton');
+        const searchResults = document.getElementById('results');
+        //
+        function updateLastList() {
+            historySearch.innerHTML = '';
+            let hs = window.localStorage.getItem('history') || '[]';
+
+            hs = JSON.parse(hs).slice(-3);
+            
+            for (let value in hs) {
+                let li = document.createElement('li');
+                li.appendChild(document.createTextNode(hs[2-value]));
+                historySearch.appendChild(li); 
+            }
+        }
+        function getRequest() {
+            let hs = window.localStorage.getItem('history') || '[]';
+            hs = JSON.parse(hs);
+            hs.push(inputValue.value);
+            hs = hs.filter((item, idx) => {return hs.indexOf(item) == idx; });
+            window.localStorage.setItem('history', JSON.stringify(hs)); 
+            searchResults.innerHTML = '';
+            fetch('https://api.themoviedb.org/3/search/movie?api_key=f680a867566257f0ead418be1d746aca&query=' + inputValue.value, ).then(response => response.json())
+            .then(result => {
+                result.results.forEach(element => {
+                    let div = document.createElement('div');
+                    div.setAttribute('class', 'flex-col')
+                    let el = document.createElement('a');
+                    el.href = `https://www.themoviedb.org/movie/${element.id}`;
+                    el.target = '_blank';
+                    div.appendChild(document.createTextNode(element.title || element.original_title));
+                    let img = document.createElement('img');
+                    img.src = `https://www.themoviedb.org/t/p/w220_and_h330_face/${element.poster_path}`;
+                    el.appendChild(img);
+                    div.appendChild(el);
+                    searchResults.appendChild(div);
+                });
+
+            }).catch(/*searchResults.innerHTML = '<h3>Ошибка в запросе, переформулируйте!</h3>'*/);
+            updateLastList();
+        }
+        window.addEventListener('storage', updateLastList, true);
+        updateLastList();
+        searchButton.addEventListener('click', getRequest);
+        inputValue.addEventListener('change', getRequest);
+        inputValue.addEventListener('keyup', (event) => {
+            if (event.keyCode == 13) {
+                event.preventDefault();
+                getRequest();
+            }
+            fetch('https://api.themoviedb.org/3/search/movie?api_key=f680a867566257f0ead418be1d746aca&query=' + inputValue.value, ).then(response => response.json())
+            .then(result => {
+                let tenRes = [];
+                let hs = window.localStorage.getItem('history') || '[]';
+                hs = JSON.parse(hs);
+
+                dataList.innerHTML = '';
+                let filter = hs.filter((item) => {
+                    return item.includes(inputValue.value);
+                });
+                let prev = filter.slice(-5);
+                
+                tenRes.push(...(result.results.slice(0,10-prev.length)));
+                prev.forEach(element => {
+                    let el = document.createElement('option');
+                    el.value = element;
+                    dataList.appendChild(el);
+                });
+
+                tenRes.forEach(element => {
+                    let el = document.createElement('option');
+                    el.value = element.title || element.original_title;
+                    dataList.appendChild(el);
+                    hs.push(el.value);
+                });            
+            }).catch();
+        });
+    </script>
+</html>
